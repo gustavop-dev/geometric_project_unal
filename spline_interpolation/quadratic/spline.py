@@ -114,6 +114,11 @@ class QuadraticSpline:
             if x_val < self.x[0] or x_val > self.x[-1]:
                 raise ValueError(f"Point {x_val} is outside the interpolation range [{self.x[0]}, {self.x[-1]}]")
                 
+            # Handle the case where x_val equals the last point exactly
+            if x_val == self.x[-1]:
+                y_new[i] = self.y[-1]
+                continue
+                
             # Find the corresponding interval
             idx = np.searchsorted(self.x, x_val, side='right') - 1
             
@@ -143,6 +148,13 @@ class QuadraticSpline:
         for i, x_val in enumerate(x_new):
             if x_val < self.x[0] or x_val > self.x[-1]:
                 raise ValueError(f"Point {x_val} is outside the interpolation range [{self.x[0]}, {self.x[-1]}]")
+                
+            # Handle the case where x_val equals the last point exactly
+            if x_val == self.x[-1]:
+                # Use the last interval's coefficients to calculate the derivative at the last point
+                idx = len(self.a) - 1
+                y_deriv[i] = 2 * self.a[idx] * x_val + self.b[idx]
+                continue
                 
             # Find the corresponding interval
             idx = np.searchsorted(self.x, x_val, side='right') - 1

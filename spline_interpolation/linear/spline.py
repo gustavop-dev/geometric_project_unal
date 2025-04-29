@@ -60,6 +60,11 @@ class LinearSpline:
             if x_val < self.x[0] or x_val > self.x[-1]:
                 raise ValueError(f"Point {x_val} is outside the interpolation range [{self.x[0]}, {self.x[-1]}]")
                 
+            # Handle the case where x_val equals the last point exactly
+            if x_val == self.x[-1]:
+                y_new[i] = self.y[-1]
+                continue
+                
             # Find the corresponding interval
             idx = np.searchsorted(self.x, x_val, side='right') - 1
             
