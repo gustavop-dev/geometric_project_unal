@@ -1,120 +1,94 @@
-# Spline Interpolation
+# Geometric Methods Project
 
-This project implements linear and quadratic spline interpolation methods described in the "Spline Method of Interpolation" document. Part of a project for the Applied Geometry course.
+This repository contains implementations of different geometric methods developed for the Applied Geometry course. Each assignment is contained in its own directory with specific implementations and examples.
 
-## Description
+## Assignments
 
-The project provides implementations of:
+The repository currently includes:
 
-1. **Linear Spline Interpolation** - Connects consecutive data points with straight lines. Simple but effective.
-2. **Quadratic Spline Interpolation** - Fits quadratic polynomials between pairs of consecutive points, maintaining first derivative continuity at interior points.
+1. **Assignment 1: Spline Interpolation (1D)** - Implementation of linear and quadratic splines for 1D data interpolation with applications in rocket motion.
+2. **Assignment 2: Parametric Spline Curves (2D)** - Implementation of 2D parametric curves using quadratic splines with applications in curve design.
 
-It includes examples based on rocket motion, demonstrating how to calculate:
-- Velocity at a specific point through interpolation
-- Distance covered through spline integration
-- Acceleration through spline differentiation
-
-## Project Structure
-
-```
-spline_interpolation/
-│
-├── linear/                  # Linear Spline Implementation
-│   ├── __init__.py
-│   └── spline.py            # LinearSpline class and example_rocket
-│
-├── quadratic/               # Quadratic Spline Implementation
-│   ├── __init__.py
-│   └── spline.py            # QuadraticSpline class and example_rocket
-│
-├── utils/                   # Utilities for the project
-│   ├── __init__.py
-│   └── compare.py           # Functions to compare interpolation methods
-│
-├── __init__.py
-└── main.py                  # Main script to run examples
-```
+Each assignment directory contains its own README with detailed instructions and usage examples.
 
 ## Requirements
+
+The project requires:
 
 - Python 3.6+
 - NumPy
 - Matplotlib
 - SciPy
 
-You can install the dependencies with:
+## Installation
+
+### 1. Clone the repository:
 
 ```bash
-pip install numpy matplotlib scipy
+git clone https://github.com/yourusername/geometric_project.git
+cd geometric_project
 ```
 
-## Usage
-
-### Run all rocket examples
+### 2. Create a virtual environment (recommended):
 
 ```bash
-python -m spline_interpolation.main
+python -m venv venv
 ```
 
-### Run only a specific method
+#### On Windows:
+```bash
+venv\Scripts\activate
+```
+
+#### On macOS/Linux:
+```bash
+source venv/bin/activate
+```
+
+### 3. Install dependencies:
 
 ```bash
-# Only Linear Spline
-python -m spline_interpolation.main --method linear
-
-# Only Quadratic Spline
-python -m spline_interpolation.main --method quadratic
-
-# Comparison of both methods
-python -m spline_interpolation.main --method compare
+pip install -r requirements.txt
 ```
 
-### Change the evaluation point
+## Running the Code
+
+Each assignment has specific instructions for running its examples. Please refer to:
+
+- [Assignment 1 Instructions](assignment_1/README.md)
+- [Assignment 2 Instructions](assignment_2/README.md)
+
+### Generate Plots in Headless Environment
+
+If working in a headless environment (like a server without GUI), all examples have been updated to save plots as image files in each assignment's output directory:
 
 ```bash
-python -m spline_interpolation.main --eval_point 18
+python -m assignment_2.main --example ellipse --save_only
 ```
 
-### Use custom data
+The saved plots will be available in the respective assignment's output directory.
 
-```bash
-python -m spline_interpolation.main --custom --x 0 1 2 3 4 --y 0 1 4 9 16
+## Repository Structure
+
+```
+geometric_project/
+│
+├── assignment_1/          # 1D Spline Interpolation
+│   ├── README.md          # Specific instructions for Assignment 1
+│   ├── linear/            # Linear spline implementation 
+│   ├── quadratic/         # Quadratic spline implementation
+│   └── ... 
+│
+├── assignment_2/          # 2D Parametric Spline Curves
+│   ├── README.md          # Specific instructions for Assignment 2
+│   ├── curves/            # Implementation of 2D curves
+│   ├── output/            # Saved plot images
+│   └── ...
+│
+├── requirements.txt       # Python dependencies
+└── README.md              # This file
 ```
 
-### Runge Phenomenon Demonstration
+## License
 
-To demonstrate why splines are preferable to high-order polynomials for interpolation, you can uncomment the Runge example execution in `main.py` and run:
-
-```bash
-python -m spline_interpolation.main
-```
-
-## Technical Details
-
-### Linear Spline
-
-Linear spline interpolation implements:
-- Connecting points with straight lines
-- Evaluating the interpolated function at any point within the range
-- Visualizing the resulting spline
-
-### Quadratic Spline
-
-Quadratic spline interpolation implements:
-- Fitting quadratic polynomials between points
-- Maintaining first derivative continuity
-- Calculating derivatives (acceleration) at any point
-- Calculating integrals (distance) between any two points
-- Visualizing the spline and its derivative
-
-## Included Examples
-
-1. **Example 1**: Calculation of rocket velocity at t = 16s using Linear Spline
-2. **Example 2**: Complete rocket analysis using Quadratic Spline:
-   - Velocity at t = 16s
-   - Distance covered between t = 11s and t = 16s
-   - Acceleration at t = 16s
-
-## References
-
-This project is based on the "Spline Method of Interpolation" document that describes the mathematical foundations of spline methods. 
+This project is part of the Applied Geometry course and is provided for educational purposes. 

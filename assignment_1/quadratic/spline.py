@@ -8,6 +8,7 @@ the "Spline Method of Interpolation" document.
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.integrate import quad
+import os
 
 class QuadraticSpline:
     """
@@ -216,7 +217,7 @@ class QuadraticSpline:
         a_coef, b_coef, c_coef = self.a[idx], self.b[idx], self.c[idx]
         return (a_coef * (b**3 - a**3) / 3 + b_coef * (b**2 - a**2) / 2 + c_coef * (b - a))
     
-    def plot(self, num_points=1000, show_points=True, show_derivatives=False):
+    def plot(self, num_points=1000, show_points=True, show_derivatives=False, ax=None):
         """
         Plot the quadratic spline and optionally its derivative.
         
@@ -224,117 +225,156 @@ class QuadraticSpline:
             num_points (int): Number of points for the plot.
             show_points (bool): If True, show the original data points.
             show_derivatives (bool): If True, show the first derivative.
+            ax (matplotlib.axes.Axes, optional): Axes to plot on.
+            
+        Returns:
+            matplotlib.axes.Axes: The axes used for plotting.
         """
+        # Create new figure if not provided
+        if ax is None:
+            fig, ax = plt.subplots(figsize=(12, 8))
+            
+        # Create evenly spaced points for plotting the spline
         x_plot = np.linspace(self.x[0], self.x[-1], num_points)
         y_plot = self(x_plot)
         
-        plt.figure(figsize=(12, 8))
-        
         # Plot the spline
-        plt.subplot(211)
-        plt.plot(x_plot, y_plot, 'b-', label='Quadratic Spline')
+        ax.plot(x_plot, y_plot, 'b-', label='Quadratic Spline')
         
+        # Plot the data points
         if show_points:
-            plt.plot(self.x, self.y, 'ro', label='Data Points')
+            ax.plot(self.x, self.y, 'ro', label='Data Points')
             
-        plt.grid(True)
-        plt.legend()
-        plt.xlabel('x')
-        plt.ylabel('y')
-        plt.title('Quadratic Spline Interpolation')
-        
         # Plot the derivative if requested
         if show_derivatives:
-            plt.subplot(212)
             y_deriv = self.derivative(x_plot)
-            plt.plot(x_plot, y_deriv, 'g-', label='First Derivative')
-            plt.grid(True)
-            plt.legend()
-            plt.xlabel('x')
-            plt.ylabel("y'")
-            plt.title('First Derivative of Quadratic Spline')
+            
+            # Use a twin x-axis for the derivative plot
+            ax_deriv = ax.twinx()
+            ax_deriv.plot(x_plot, y_deriv, 'g-', label='First Derivative')
+            ax_deriv.set_ylabel('Derivative')
+            ax_deriv.legend(loc='upper right')
+            
+        ax.set_xlabel('x')
+        ax.set_ylabel('y')
+        ax.set_title('Quadratic Spline Interpolation')
+        ax.grid(True)
+        ax.legend(loc='upper left')
+        
+        return ax
+
+
+def example_rocket(t_eval=16.0, show_plot=True, save_plot=False, output_dir=None, timestamp=None):
+    """
+    Example of quadratic spline interpolation using rocket motion data.
+    
+    Args:
+        t_eval (float): Time at which to evaluate the rocket velocity.
+        show_plot (bool): Whether to display the plot.
+        save_plot (bool): Whether to save the plot as an image file.
+        output_dir (str): Directory to save the plot (if save_plot is True).
+        timestamp (str): Timestamp string to include in the filename.
+        
+    Returns:
+        dict: Dictionary containing velocity, distance, and acceleration at the specified time.
+    """
+    # Rocket motion data
+    times = np.array([0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30])
+    heights = np.array([0, 2, 5, 9, 15, 22, 29, 37, 46, 58, 72, 88, 106, 127, 150, 176])
+    
+    # Create a quadratic spline for the rocket trajectory
+    rocket_spline = QuadraticSpline(times, heights)
+    
+    # Calculate velocity at t_eval using the derivative
+    velocity = rocket_spline.derivative(t_eval)
+    
+    # Calculate distance covered between t=11s and t=16s
+    distance = rocket_spline.integrate(11.0, t_eval)
+    
+    # Calculate acceleration at t_eval using numerical differentiation
+    dt = 0.001
+    v1 = rocket_spline.derivative(t_eval - dt)
+    v2 = rocket_spline.derivative(t_eval + dt)
+    acceleration = (v2 - v1) / (2 * dt)
+    
+    # Store results
+    results = {
+        'velocity': velocity,
+        'distance': distance,
+        'acceleration': acceleration
+    }
+    
+    # Plot the spline and its derivative
+    if show_plot or save_plot:
+        fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(18, 6))
+        
+        # Plot height vs time
+        rocket_spline.plot(ax=ax1, show_derivatives=False)
+        ax1.set_xlabel('Time (s)')
+        ax1.set_ylabel('Height (m)')
+        ax1.set_title('Rocket Height vs Time')
+        
+        # Mark the evaluation point
+        ax1.plot(t_eval, rocket_spline(t_eval), 'g*', markersize=10, 
+                label=f'Evaluation point (t={t_eval}s)')
+        
+        # Shade the area for the distance integral
+        t_integral = np.linspace(11.0, t_eval, 100)
+        h_integral = rocket_spline(t_integral)
+        ax1.fill_between(t_integral, 0, h_integral, alpha=0.3, color='r',
+                        label=f'Distance: {distance:.2f} m')
+        ax1.legend()
+        
+        # Plot velocity vs time
+        t_plot = np.linspace(times[0], times[-1], 1000)
+        v_plot = rocket_spline.derivative(t_plot)
+        
+        ax2.plot(t_plot, v_plot, 'r-', label='Velocity (derivative)')
+        ax2.set_xlabel('Time (s)')
+        ax2.set_ylabel('Velocity (m/s)')
+        ax2.set_title('Rocket Velocity vs Time')
+        
+        # Mark the evaluation point
+        ax2.plot(t_eval, velocity, 'g*', markersize=10, 
+                label=f'v(t={t_eval}s) = {velocity:.2f} m/s')
+        ax2.legend()
+        ax2.grid(True)
+        
+        # Plot acceleration vs time (numerical 2nd derivative)
+        a_plot = np.zeros_like(t_plot)
+        for i, t in enumerate(t_plot):
+            v1 = rocket_spline.derivative(t - dt)
+            v2 = rocket_spline.derivative(t + dt)
+            a_plot[i] = (v2 - v1) / (2 * dt)
+            
+        ax3.plot(t_plot, a_plot, 'g-', label='Acceleration (2nd derivative)')
+        ax3.set_xlabel('Time (s)')
+        ax3.set_ylabel('Acceleration (m/s²)')
+        ax3.set_title('Rocket Acceleration vs Time')
+        
+        # Mark the evaluation point
+        ax3.plot(t_eval, acceleration, 'g*', markersize=10, 
+                label=f'a(t={t_eval}s) = {acceleration:.2f} m/s²')
+        ax3.legend()
+        ax3.grid(True)
         
         plt.tight_layout()
-        plt.show()
-
-
-def example_rocket():
-    """
-    Implementation of Example 2 from the document about the rocket.
+        
+        # Save the plot if requested
+        if save_plot and output_dir:
+            if timestamp is None:
+                import datetime
+                timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+            
+            filename = f"quadratic_spline_rocket_{timestamp}.png"
+            filepath = os.path.join(output_dir, filename)
+            plt.savefig(filepath, dpi=300)
+            print(f"Quadratic spline rocket plot saved to: {filepath}")
+        
+        if show_plot:
+            plt.show()
     
-    The example calculates:
-    a) The rocket's velocity at t = 16 seconds using quadratic splines.
-    b) The distance covered by the rocket between t = 11s and t = 16s.
-    c) The rocket's acceleration at t = 16s.
-    """
-    # Rocket data: time and velocity
-    t = np.array([0, 10, 15, 20, 22.5, 30])
-    v = np.array([0, 227.04, 362.78, 517.35, 602.97, 901.67])
-    
-    # Create the quadratic spline interpolator
-    spline = QuadraticSpline(t, v)
-    
-    # Part a: Calculate the velocity at t = 16 seconds
-    v_16 = spline(16)
-    print(f"a) Velocity at t = 16 seconds: {v_16:.2f} m/s")
-    
-    # Part b: Calculate the distance covered between t = 11s and t = 16s
-    distance = spline.integrate(11, 16)
-    print(f"b) Distance covered between t = 11s and t = 16s: {distance:.2f} m")
-    
-    # Part c: Calculate the acceleration at t = 16s
-    accel_16 = spline.derivative(16)
-    print(f"c) Acceleration at t = 16 seconds: {accel_16:.2f} m/s²")
-    
-    # Plot the results
-    plt.figure(figsize=(15, 12))
-    
-    # Velocity vs time
-    plt.subplot(311)
-    t_plot = np.linspace(0, 30, 1000)
-    v_plot = spline(t_plot)
-    
-    plt.plot(t_plot, v_plot, 'b-', label='Quadratic Spline')
-    plt.plot(t, v, 'ro', label='Data Points')
-    plt.plot(16, v_16, 'g*', markersize=10, label=f't = 16s, v = {v_16:.2f} m/s')
-    
-    plt.grid(True)
-    plt.legend()
-    plt.xlabel('Time (s)')
-    plt.ylabel('Velocity (m/s)')
-    plt.title('Rocket Velocity vs Time - Quadratic Spline Interpolation')
-    
-    # Acceleration vs time
-    plt.subplot(312)
-    a_plot = spline.derivative(t_plot)
-    
-    plt.plot(t_plot, a_plot, 'r-', label='Acceleration')
-    plt.plot(16, accel_16, 'g*', markersize=10, label=f't = 16s, a = {accel_16:.2f} m/s²')
-    
-    plt.grid(True)
-    plt.legend()
-    plt.xlabel('Time (s)')
-    plt.ylabel('Acceleration (m/s²)')
-    plt.title('Rocket Acceleration vs Time')
-    
-    # Visualize the distance covered
-    plt.subplot(313)
-    # Shade the area under the curve between t = 11s and t = 16s
-    t_segment = np.linspace(11, 16, 100)
-    v_segment = spline(t_segment)
-    
-    plt.plot(t_plot, v_plot, 'b-', label='Velocity')
-    plt.fill_between(t_segment, 0, v_segment, alpha=0.3, color='blue', 
-                    label=f'Distance = {distance:.2f} m')
-    
-    plt.grid(True)
-    plt.legend()
-    plt.xlabel('Time (s)')
-    plt.ylabel('Velocity (m/s)')
-    plt.title('Distance covered between t = 11s and t = 16s')
-    
-    plt.tight_layout()
-    plt.show()
+    return results
 
 
 if __name__ == "__main__":
