@@ -139,3 +139,24 @@ All output images are organized in subdirectories:
 - Add support for higher-degree B-splines
 - Develop curvature analysis tools
 - Implement methods to calculate areas and perimeters based on the curve 
+
+
+
+
+
+
+Me complace informarle sobre los avances realizados en el proyecto de la asignatura de geometría aplicada (Assignment 3), relacionado con la implementación de B-splines para la interpolación de contornos médicos.
+He mejorado significativamente el trabajo original, implementando las siguientes funcionalidades:
+Scripts de visualización optimizados: He creado tres scripts especializados para diferentes tipos de visualizaciones:
+simple_curve.py: Genera visualizaciones limpias y básicas de la curva B-spline con los puntos originales.
+compare_bsplines.py: Crea cuadrículas comparativas de diferentes grados de B-splines y valores de suavizado, así como frames para animaciones.
+visualize_3d.py: Produce visualizaciones 3D donde el eje Z representa la curvatura u otras propiedades de la curva.
+Resolución de problemas de auto-intersección: He implementado ordenación angular de puntos alrededor del centro de masa y otros métodos para evitar auto-intersecciones en la curva.
+Organización de resultados: Todos los resultados generados se guardan automáticamente en subcarpetas específicas dentro de assignment_3/output/ para mantener el proyecto organizado.
+Documentación completa: He redactado un README.md y un REPORT.md detallados, explicando los fundamentos teóricos, la implementación y los resultados obtenidos.
+Mejoras de parametrización: He refinado la parametrización por longitud de cuerda para adaptarse mejor a la distribución no uniforme de los puntos del contorno.
+Los scripts permiten ajustar múltiples parámetros como el grado del B-spline, el factor de suavizado, y las opciones de visualización, facilitando la exploración de diferentes configuraciones para obtener los mejores resultados.
+Este trabajo complementa lo realizado en el Assignment 2, aplicando técnicas de interpolación para representar contornos anatómicos de manera precisa y suave, lo cual es crucial en el contexto de las imágenes médicas del manguito rotador.
+Estaré encantado de hacer una demostración o proporcionar cualquier aclaración adicional que requiera.
+Atentamente,
+[Tu nombre]
