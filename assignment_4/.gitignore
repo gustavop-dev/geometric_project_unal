@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+*.egg-info/
+
+# Results (generated files)
+sam_results/
+sam_results_2/
+advanced_results/
+*.png
+*.jpg
+
+# Models (too large for git)
+models/*.pth
+
+# Logs
+*.log
+*.txt
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
