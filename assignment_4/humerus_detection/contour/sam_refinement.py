@@ -191,18 +191,10 @@ class SAMContourRefiner:
             
         elif method == 'box':
             # Get bounding box from contour + use center point
-            # This combination helps SAM capture the full interior region
+            # This combination helps SAM capture the interior region
             box = self._contour_to_box(contour)
             
-            # Expand box by 15% to give SAM more freedom
-            width = box[2] - box[0]
-            height = box[3] - box[1]
-            expansion = 0.15
-            box[0] -= width * expansion
-            box[1] -= height * expansion
-            box[2] += width * expansion
-            box[3] += height * expansion
-            
+            # Use exact box without expansion to prevent SAM from going outside
             # Clip to image bounds
             box[0] = max(0, box[0])
             box[1] = max(0, box[1])
@@ -281,29 +273,45 @@ class SAMContourRefiner:
     
     @staticmethod
     def _mask_to_contour(mask: np.ndarray) -> np.ndarray:
-        """Convert binary mask to contour."""
-        # Find contours using OpenCV
-        contours, _ = cv2.findContours(
-            mask.astype(np.uint8), 
-            cv2.RETR_EXTERNAL, 
-            cv2.CHAIN_APPROX_NONE
-        )
+        """
+        Convert a binary mask to a contour.
+        Ensures the contour is continuous, closed, and smooth.
         
-        if len(contours) == 0:
+        Args:
+            mask: Binary mask
+            
+        Returns:
+            Contour as (N, 2) array of [y, x] coordinates
+        """
+        import cv2
+        from scipy.ndimage import gaussian_filter1d
+        
+        # Find contours using OpenCV for better continuity
+        mask_uint8 = (mask * 255).astype(np.uint8)
+        contours_cv, _ = cv2.findContours(mask_uint8, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        
+        if len(contours_cv) == 0:
             return np.array([])
         
         # Get the largest contour
-        largest_contour = max(contours, key=cv2.contourArea)
+        largest_contour = max(contours_cv, key=cv2.contourArea)
         
-        # Convert from OpenCV format (N, 1, 2) [x, y] to (N, 2) [y, x]
+        # Convert from OpenCV format [[[x, y]]] to our format [[y, x]]
         contour = largest_contour.squeeze()
-        if len(contour.shape) == 1:
-            contour = contour.reshape(-1, 2)
         
-        # Swap x, y to y, x
-        contour = contour[:, [1, 0]]
+        if len(contour.shape) == 1:  # Single point
+            return np.array([])
         
-        return contour
+        # Swap x,y to y,x
+        contour_yx = contour[:, [1, 0]].astype(np.float64)
+        
+        # Smooth the contour with Gaussian filter to remove irregularities
+        # Apply filter separately to y and x coordinates
+        sigma = 2.0  # Smoothing strength
+        contour_yx[:, 0] = gaussian_filter1d(contour_yx[:, 0], sigma=sigma, mode='wrap')
+        contour_yx[:, 1] = gaussian_filter1d(contour_yx[:, 1], sigma=sigma, mode='wrap')
+        
+        return contour_yx
     
     @staticmethod
     def _contour_to_box(contour: np.ndarray) -> np.ndarray:

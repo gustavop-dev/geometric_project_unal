@@ -100,13 +100,36 @@ def run_sam_enhanced_pipeline(dicom_directory: str,
         refiner.set_image(pixel_array)
         
         confidence = 0.0
+        
+        # Check if traditional contour is valid (not collapsed)
+        from humerus_detection.contour.geometry import calculate_contour_area
+        contour_area = calculate_contour_area(traditional_contour)
+        
+        # If contour collapsed or is too small, use previous contour as reference
+        if contour_area < 100 and previous_contour is not None and len(previous_contour) > 10:
+            print(f"  Traditional contour collapsed (area={contour_area:.1f}), using previous position")
+            traditional_contour = previous_contour  # Use previous as approximation
+        
         try:
-            # Use points method: only center point, SAM mask 2 for interior segmentation
-            refined_contour, confidence = refiner.refine_with_contour(
-                traditional_contour,
-                pixel_array.shape[:2],
-                method='points'  # M1: Simple and effective - only center point
-            )
+            # For final slices (I17 onwards), use negative points to constrain SAM
+            # This prevents SAM from segmenting too much in terminal slices
+            final_slices = ["I17", "I18", "I19", "I20"]
+            
+            if base_name in final_slices and previous_contour is not None and len(previous_contour) > 10:
+                print(f"  Final slice detected, using previous contour as negative constraint")
+                refined_contour, confidence = refiner.refine_with_contour(
+                    traditional_contour,
+                    pixel_array.shape[:2],
+                    method='points_negative'  # Use previous contour as negative boundary
+                )
+            else:
+                # Normal slices: use box method for better constraint
+                # Box + center point prevents SAM from segmenting the entire image
+                refined_contour, confidence = refiner.refine_with_contour(
+                    traditional_contour,
+                    pixel_array.shape[:2],
+                    method='box'  # Box + center point for constrained segmentation
+                )
             
             print(f"  SAM confidence: {confidence:.3f}")
             
