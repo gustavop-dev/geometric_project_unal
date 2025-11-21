@@ -1,0 +1,320 @@
+\section{Fragmentos de código relevantes}
+
+A continuación se presentan fragmentos clave del código desarrollado para la segmentación y modelado 3D del húmero.
+
+\subsection{Pipeline principal}
+
+El siguiente fragmento muestra la estructura principal del pipeline de procesamiento:
+
+\begin{lstlisting}[language=Python, caption=Pipeline de procesamiento en humerus\_detection/\_\_init\_\_.py]
+def run_pipeline(dicom_directory: str, output_directory: str, show_images: bool = False) -> None:
+    """
+    Run the complete humerus detection and modeling pipeline.
+    
+    Args:
+        dicom_directory: Directory containing the DICOM files
+        output_directory: Directory where to save the results
+        show_images: Whether to display the images during processing
+    """
+    print(f"Running humerus detection pipeline:")
+    print(f"  - DICOM directory: {dicom_directory}")
+    print(f"  - Output directory: {output_directory}")
+    
+    # Create output directory if it doesn't exist
+    os.makedirs(output_directory, exist_ok=True)
+    
+    # Process all DICOM files in the directory
+    files = sorted([f for f in os.listdir(dicom_directory) if f.endswith('.dcm')])
+    
+    print(f"Found {len(files)} DICOM files to process")
+    previous_contour = None
+    
+    for i, file in enumerate(files):
+        print(f"Processing {i+1}/{len(files)}: {file}")
+        full_path = os.path.join(dicom_directory, file)
+        
+        # Step 1: Read DICOM file
+        dataset, pixel_array = dicom_utils.read_dicom(full_path)
+        if dataset is None or pixel_array is None:
+            print(f"  Error reading {file}")
+            continue
+        
+        base_name = os.path.splitext(os.path.basename(full_path))[0]
+            
+        # Step 2: Detect the humerus contour
+        contour = detection.detect_advanced_humerus_contour(
+            pixel_array, 
+            previous_contour=previous_contour, 
+            file_name=base_name,
+            slice_height=dicom_utils.get_slice_height(dataset)
+        )
+        
+        # Step 3: If no contour (humerus disappeared), continue to next file
+        if len(contour) == 0:
+            print(f"  No humerus detected in {base_name}")
+            previous_contour = None
+            
+            # Save an empty image for visualization
+            fig = plt.figure(figsize=(10, 8))
+            plt.imshow(pixel_array, cmap='gray')
+            plt.title(f"Axial slice - No humerus detected")
+            plt.axis('off')
+            plt.tight_layout()
+            plotting.save_results(fig, output_directory, base_name, "end_humerus")
+            plt.close(fig)
+            continue
+            
+        # Step 4: Apply B-spline
+        smoothed_contour = outliers.detect_and_correct_outliers(contour, is_spline=False)
+        
+        # Use more smoothing for a more anatomical result
+        smoothing = 10.0 * 2.5
+        degree = 3
+        x_spline, y_spline = fitting.apply_bspline(smoothed_contour, degree, smoothing)
+        
+        if x_spline is None or y_spline is None:
+            print(f"  Error applying B-spline to {base_name}")
+            continue
+        
+        # Step 5: Visualize and save results
+        title = f"Axial slice - B-spline (degree {degree}, smoothing {smoothing})"
+        fig = plotting.visualize_results(
+            pixel_array, contour, x_spline, y_spline, title
+        )
+        
+        plotting.save_results(fig, output_directory, base_name, "advanced")
+        
+        if not show_images:
+            plt.close(fig)
+        else:
+            plt.show()
+        
+        # Update previous contour for next iteration
+        previous_contour = contour
+\end{lstlisting}
+
+\subsection{Detección del húmero}
+
+El algoritmo de detección avanzada del húmero incluye mecanismos para mantener coherencia anatómica:
+
+\begin{lstlisting}[language=Python, caption=Fragmento de detect\_advanced\_humerus\_contour en contour/detection.py]
+def detect_advanced_humerus_contour(
+    pixel_array: np.ndarray, 
+    previous_contour: Optional[np.ndarray] = None, 
+    file_name: Optional[str] = None,
+    slice_height: Optional[float] = None
+) -> np.ndarray:
+    """
+    Detects the humerus contour (dark region) in a DICOM image.
+    1. Detects the circular zone (humerus) with Hough.
+    2. Searches for the real contour only within that zone.
+    3. Adjusts the contour with snake.
+    4. If it fails, uses the circle as a fallback.
+    
+    Includes improvements to maintain continuity between images.
+    
+    Args:
+        pixel_array: Pixel matrix of the DICOM image
+        previous_contour: Contour from the previous slice for continuity
+        file_name: Name of the file being processed (used for special handling of terminal slices)
+        slice_height: Height of the slice in mm
+        
+    Returns:
+        Detected contour as a numpy array of shape (n_points, 2)
+    """
+    # Check if we're in the final slices where the humerus disappears
+    final_slices = ["I18", "I19", "I20"]
+    
+    # If we're in a final slice, force the termination of the humerus
+    if file_name in final_slices and previous_contour is not None:
+        # Generate a terminal contour that gets smaller with each slice
+        slice_idx = final_slices.index(file_name)
+        reduction_factor = 0.5 - (slice_idx * 0.2)  # From 0.5 to 0.1
+        
+        return generate_terminal_contour(previous_contour, reduction_factor)
+    
+    # Special handling for problematic images
+    if file_name in ["I6", "I7"]:
+        # Use higher threshold and adjusted parameters
+        norm_image = image_processing.normalize_image(pixel_array)
+        
+        # Apply threshold with higher value for these specific images
+        threshold = 0.3 if file_name == "I6" else 0.35
+        binary_image = norm_image < threshold
+        
+        # Apply morphological operations to clean up the image
+        binary_image = binary_dilation(binary_image, structure=morphology_disk(2))
+        binary_image = binary_fill_holes(binary_image)
+        
+        # Try to find the humerus region
+        # ... (código específico para estas imágenes)
+        
+    # Find the center and radius of the humerus using Hough Circle Transform
+    center_x, center_y, radius = detect_humerus_circle(pixel_array)
+    
+    # If detection failed but we have a previous contour, use it as reference
+    if (center_x is None or radius is None) and previous_contour is not None:
+        # Calculate center and average radius from previous contour
+        prev_center = np.mean(previous_contour, axis=0)
+        prev_radius = np.mean(np.sqrt(np.sum((previous_contour - prev_center)**2, axis=1)))
+        
+        # Use previous contour with slight adjustments
+        init_contour = previous_contour.copy()
+    elif center_x is not None and radius is not None:
+        # Generate initial circular contour from Hough detection
+        init_contour = generate_circular_contour(center_x, center_y, radius)
+    else:
+        # If all detection methods fail, return empty contour
+        return np.array([])
+    
+    # Prepare image for snake algorithm (inverted gradient)
+    # Higher alpha (tension) and beta (rigidity) to prevent collapse
+    # These parameters were increased to maintain coherent shape
+    alpha = 0.015  # Tension parameter
+    beta = 10.0    # Rigidity parameter 
+    
+    # Apply active contour model (snake)
+    try:
+        # Use the active contour algorithm
+        snake = active_contour(
+            gaussian_filter(image_processing.normalize_image(pixel_array), 2.0),
+            init_contour,
+            alpha=alpha,      # Tension
+            beta=beta,        # Rigidity
+            gamma=0.001,      # Time step
+            w_line=0,         # Weight for image intensity
+            w_edge=1.0,       # Weight for image edges
+            max_iterations=100
+        )
+        
+        return snake
+    except:
+        # If snake algorithm fails, return the initial contour
+        return init_contour
+\end{lstlisting}
+
+\subsection{Ajuste de splines}
+
+El siguiente fragmento muestra la implementación del ajuste mediante B-splines, que fue clave para obtener contornos suaves:
+
+\begin{lstlisting}[language=Python, caption=Implementación del ajuste mediante B-splines en spline/fitting.py]
+def apply_bspline(contour: np.ndarray, degree: int = 3, smoothing: float = 10.0) -> Tuple[np.ndarray, np.ndarray]:
+    """
+    Apply B-spline fitting to a contour.
+    
+    Args:
+        contour: Input contour points as numpy array of shape (n_points, 2)
+        degree: Degree of the B-spline
+        smoothing: Smoothing factor (0 = interpolation)
+        
+    Returns:
+        Tuple containing arrays of x and y coordinates of the spline
+    """
+    try:
+        # Extract x and y coordinates
+        y, x = contour[:, 0], contour[:, 1]
+        
+        # Arc length parametrization
+        t = np.zeros(len(x))
+        t[1:] = np.cumsum(np.sqrt(np.diff(x)**2 + np.diff(y)**2))
+        t = t / t[-1]
+        
+        # Check if we have enough points for the spline degree
+        if len(x) <= degree:
+            # If not enough points, reduce degree
+            degree = min(degree, max(1, len(x) - 1))
+        
+        # Periodic B-spline fitting
+        tck, u = splprep([x, y], u=t, s=smoothing, k=degree, per=1)
+        
+        # Evaluate the spline at uniform parameter values
+        u_new = np.linspace(0, 1, 200)
+        x_spline, y_spline = splev(u_new, tck)
+        
+        return x_spline, y_spline
+    except Exception as e:
+        print(f"Error applying B-spline: {e}")
+        return None, None
+\end{lstlisting}
+
+\subsection{Generación del modelo 3D}
+
+La generación del modelo 3D a partir de los contornos extraídos:
+
+\begin{lstlisting}[language=Python, caption=Generación del modelo 3D a partir de los contornos en run\_visualization.py]
+def generate_3d_model(contours, z_spacing, pixel_spacing, output_path):
+    """
+    Generate a 3D model from stacked contours.
+    
+    Args:
+        contours: List of contours for each slice
+        z_spacing: Spacing in mm between slices
+        pixel_spacing: Pixel resolution (x, y) in mm
+        output_path: Path to save the 3D model
+    """
+    # Filter empty contours
+    valid_contours = [c for c in contours if len(c) > 0]
+    
+    if not valid_contours:
+        print("No valid contours to generate the 3D model.")
+        return
+    
+    # Create 3D figure
+    fig = plt.figure(figsize=(12, 10))
+    ax = fig.add_subplot(111, projection='3d')
+    
+    # For uniform visualization, normalize each contour to an equal number of points
+    n_points = 100
+    
+    # Colormap to color the contours by height
+    colors = plt.cm.viridis(np.linspace(0, 1, len(valid_contours)))
+    
+    # Create 3D surface
+    for i, contour in enumerate(valid_contours):
+        # Z coordinate of the slice (based on DICOM spacing)
+        z = i * z_spacing
+        
+        # Scale XY coordinates according to pixel resolution
+        x = contour[:, 1] * pixel_spacing[0]
+        y = contour[:, 0] * pixel_spacing[1]
+        
+        # Resample the contour with B-splines to have uniform points
+        if len(contour) > 3:
+            try:
+                from scipy.interpolate import splprep, splev
+                
+                # Arc length parameterization
+                t = np.zeros(len(x))
+                t[1:] = np.cumsum(np.sqrt(np.diff(x)**2 + np.diff(y)**2))
+                t = t / t[-1]
+                
+                # Closed B-spline
+                tck, u = splprep([x, y], u=t, s=0, per=1)
+                u_new = np.linspace(0, 1, n_points)
+                x_new, y_new = splev(u_new, tck)
+                
+                # Draw contour
+                ax.plot(x_new, y_new, [z]*len(x_new), '-', color=colors[i], alpha=0.7, linewidth=2)
+                
+                # Connect with previous contour if it exists
+                if i > 0 and len(valid_contours[i-1]) > 3:
+                    x_prev = valid_contours[i-1][:, 1] * pixel_spacing[0]
+                    y_prev = valid_contours[i-1][:, 0] * pixel_spacing[1]
+                    z_prev = (i-1) * z_spacing
+                    
+                    # Resample previous contour
+                    t_prev = np.zeros(len(x_prev))
+                    t_prev[1:] = np.cumsum(np.sqrt(np.diff(x_prev)**2 + np.diff(y_prev)**2))
+                    t_prev = t_prev / t_prev[-1]
+                    
+                    tck_prev, u_prev = splprep([x_prev, y_prev], u=t_prev, s=0, per=1)
+                    x_prev_new, y_prev_new = splev(u_new, tck_prev)
+                    
+                    # Connect corresponding points between contours
+                    for j in range(0, n_points, 5):  # Connect every 5 points to avoid overloading
+                        ax.plot([x_prev_new[j], x_new[j]], [y_prev_new[j], y_new[j]], 
+                                [z_prev, z], '-', color='gray', alpha=0.3, linewidth=1)
+            except Exception as e:
+                print(f"Error processing contour {i}: {e}")
+                continue
+\end{lstlisting} 

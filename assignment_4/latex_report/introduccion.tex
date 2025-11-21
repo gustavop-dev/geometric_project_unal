@@ -1,0 +1,29 @@
+\section{Introducción}
+
+La reconstrucción tridimensional de estructuras anatómicas a partir de imágenes médicas representa un desafío importante en el campo de la medicina y la computación gráfica. Este proyecto se centra en la segmentación del húmero (el hueso más largo del brazo) a partir de imágenes de tomografía computarizada (TC) axiales y su posterior modelado 3D.
+
+\subsection{Contexto del problema}
+
+Las imágenes de tomografía computarizada proporcionan cortes axiales del cuerpo humano con alta resolución y contraste, lo que permite visualizar estructuras óseas como el húmero con claridad. Sin embargo, la segmentación automática de estas estructuras presenta varios retos:
+
+\begin{itemize}
+    \item \textbf{Variabilidad anatómica:} La forma del húmero puede variar entre individuos.
+    \item \textbf{Discontinuidades entre cortes:} Cada corte axial representa una sección diferente del húmero, y mantener la coherencia anatómica entre cortes consecutivos resulta complejo.
+    \item \textbf{Regiones problemáticas:} Ciertas áreas del húmero, como las extremidades proximal y distal, presentan cambios rápidos en su morfología que dificultan la detección automática.
+    \item \textbf{Presencia de tejidos adyacentes:} Otros tejidos cercanos pueden dificultar la detección precisa del contorno del húmero.
+\end{itemize}
+
+\subsection{Objetivos}
+
+Los objetivos principales de este proyecto son:
+
+\begin{enumerate}
+    \item Desarrollar un algoritmo robusto para la detección de contornos del húmero en cortes axiales de TC.
+    \item Implementar técnicas de ajuste mediante splines para representar fielmente la forma del húmero en cada corte.
+    \item Asegurar la coherencia anatómica entre cortes consecutivos para una reconstrucción 3D precisa.
+    \item Generar un modelo tridimensional del húmero que permita su visualización desde diferentes ángulos.
+\end{enumerate}
+
+\subsection{Desafío específico}
+
+Durante el desarrollo del proyecto, se identificó un problema específico en la segmentación: los splines generados entre cortes axiales consecutivos no mantenían coherencia anatómica, especialmente en algunas imágenes donde el spline aparecía como una línea en lugar de seguir la forma semicircular del húmero. Este informe documenta las soluciones implementadas para resolver este y otros desafíos encontrados durante el proceso de segmentación y modelado. 

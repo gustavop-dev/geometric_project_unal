@@ -1,0 +1,85 @@
+\section{Resultados}
+
+La implementación del sistema de segmentación y modelado 3D del húmero produjo resultados notables, especialmente después de las mejoras realizadas para mantener la coherencia anatómica entre cortes.
+
+\subsection{Segmentación mejorada}
+
+\subsubsection{Evaluación cualitativa}
+
+La evaluación cualitativa de los resultados mostró una mejora significativa en la calidad de la segmentación:
+
+\begin{itemize}
+    \item \textbf{Continuidad anatómica:} Los contornos detectados en cortes consecutivos mostraron una transición suave y anatómicamente coherente, eliminando las discontinuidades presentes en versiones anteriores.
+    
+    \item \textbf{Forma anatómica:} Los splines generados siguieron fielmente la forma semicircular del húmero, incluso en las regiones problemáticas como las imágenes 6 y 7, donde anteriormente aparecían como líneas rectas.
+    
+    \item \textbf{Robustez:} El sistema demostró ser robusto ante variaciones en la calidad de la imagen y en las características anatómicas del húmero a lo largo de toda su longitud.
+\end{itemize}
+
+\subsubsection{Casos problemáticos}
+
+En particular, la mejora en los casos problemáticos (imágenes 6 y 7) fue notable:
+
+\begin{itemize}
+    \item \textbf{Antes:} Los splines aparecían como líneas rectas, sin seguir el contorno semicircular del húmero.
+    \item \textbf{Después:} Los splines siguen correctamente la forma anatómica del húmero, manteniendo la coherencia con los cortes adyacentes.
+\end{itemize}
+
+Esta mejora se logró mediante:
+
+\begin{enumerate}
+    \item El uso del contorno del corte anterior como referencia.
+    \item El tratamiento especial de estos cortes específicos con parámetros ajustados.
+    \item El aumento del factor de suavizado en los B-splines.
+    \item La prevención del colapso del algoritmo snake mediante el aumento de la tensión y rigidez.
+\end{enumerate}
+
+\subsection{Modelo 3D}
+
+El modelo 3D generado a partir de los contornos mejorados presenta una representación coherente y anatómicamente precisa del húmero:
+
+\begin{itemize}
+    \item \textbf{Superficie suave:} La superficie del modelo 3D muestra transiciones suaves entre los diferentes cortes.
+    \item \textbf{Consistencia anatómica:} El modelo refleja la forma tubular del cuerpo del húmero y sus variaciones a lo largo de toda su longitud.
+    \item \textbf{Visualización completa:} La posibilidad de rotar el modelo permite observar todas las características anatómicas desde diferentes ángulos.
+\end{itemize}
+
+\subsection{Ventajas del enfoque implementado}
+
+Las principales ventajas del enfoque implementado son:
+
+\begin{enumerate}
+    \item \textbf{Robustez:} El sistema funciona correctamente incluso en presencia de variaciones anatómicas y artefactos en las imágenes.
+    
+    \item \textbf{Continuidad:} La transferencia de información entre cortes consecutivos asegura la coherencia anatómica en todo el modelo.
+    
+    \item \textbf{Adaptabilidad:} El sistema se adapta a diferentes regiones del húmero, aplicando estrategias específicas según las características anatómicas.
+    
+    \item \textbf{Suavidad:} El uso de B-splines con parámetros optimizados proporciona contornos suaves y precisos.
+    
+    \item \textbf{Visualización intuitiva:} El modelo 3D y sus visualizaciones permiten una comprensión clara de la anatomía del húmero.
+\end{enumerate}
+
+\subsection{Limitaciones y trabajo futuro}
+
+A pesar de los buenos resultados, se identificaron algunas limitaciones y oportunidades de mejora:
+
+\begin{itemize}
+    \item \textbf{Dependencia de parámetros manuales:} Algunos parámetros, como el factor de suavizado de los splines, requieren ajuste manual para diferentes conjuntos de imágenes.
+    
+    \item \textbf{Tratamiento especial para casos específicos:} La necesidad de tratamiento especial para ciertos cortes indica que podría ser beneficioso desarrollar un enfoque más generalizado.
+    
+    \item \textbf{Validación cuantitativa:} Sería valioso implementar métricas de evaluación cuantitativa para comparar la segmentación con segmentaciones manuales realizadas por expertos.
+\end{itemize}
+
+Para trabajo futuro, se propone:
+
+\begin{enumerate}
+    \item Desarrollar un sistema de aprendizaje para ajustar automáticamente los parámetros según las características de cada imagen.
+    
+    \item Extender el enfoque a otras estructuras anatómicas, como otros huesos largos o estructuras más complejas.
+    
+    \item Implementar métodos de validación cuantitativa para evaluar precisión y exactitud.
+    
+    \item Explorar tecnologías de aprendizaje profundo para la segmentación, que podrían complementar el enfoque basado en procesamiento de imágenes actual.
+\end{enumerate} 

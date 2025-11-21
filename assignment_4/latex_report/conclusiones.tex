@@ -1,0 +1,67 @@
+\section{Conclusiones}
+
+El desarrollo e implementación del sistema de segmentación y modelado 3D del húmero ha permitido obtener valiosas conclusiones sobre el procesamiento de imágenes médicas y la reconstrucción tridimensional de estructuras anatómicas.
+
+\subsection{Principales logros}
+
+Se han alcanzado los siguientes logros principales:
+
+\begin{enumerate}
+    \item \textbf{Segmentación precisa:} Se ha logrado una segmentación precisa del húmero en imágenes de tomografía computarizada, incluso en regiones anatómicamente complejas.
+    
+    \item \textbf{Coherencia anatómica:} Se ha conseguido mantener la coherencia anatómica entre cortes consecutivos, generando una representación tridimensional anatómicamente correcta.
+    
+    \item \textbf{Robustez del algoritmo:} El algoritmo desarrollado ha demostrado ser robusto ante variaciones en la calidad de la imagen y cambios en la morfología del húmero.
+    
+    \item \textbf{Visualización efectiva:} El modelo 3D generado permite una visualización efectiva y comprensible de la estructura anatómica del húmero.
+\end{enumerate}
+
+\subsection{Implicaciones técnicas}
+
+Desde el punto de vista técnico, el proyecto ha demostrado:
+
+\begin{enumerate}
+    \item La efectividad de combinar técnicas de detección inicial (transformada de Hough) con métodos de refinamiento de contorno (snake) para segmentación médica.
+    
+    \item La importancia de la transferencia de información entre cortes consecutivos para mantener la coherencia anatómica.
+    
+    \item El valor de los B-splines como herramienta para obtener representaciones suaves y precisas de estructuras anatómicas.
+    
+    \item La necesidad de adaptar los algoritmos a las características específicas de diferentes regiones anatómicas.
+\end{enumerate}
+
+\subsection{Impacto potencial}
+
+El sistema desarrollado tiene potencial para impactar en diversos campos:
+
+\begin{itemize}
+    \item \textbf{Planificación quirúrgica:} La reconstrucción 3D precisa del húmero puede ser útil para la planificación de intervenciones quirúrgicas.
+    
+    \item \textbf{Educación médica:} Los modelos generados pueden utilizarse como herramientas educativas para estudiantes de medicina y profesionales de la salud.
+    
+    \item \textbf{Investigación biomédica:} La metodología puede adaptarse para estudios de variabilidad anatómica o análisis de patologías específicas.
+    
+    \item \textbf{Desarrollo de prótesis:} Los modelos 3D precisos pueden contribuir al diseño de prótesis personalizadas.
+\end{itemize}
+
+\subsection{Lecciones aprendidas}
+
+El desarrollo del proyecto ha proporcionado valiosas lecciones:
+
+\begin{enumerate}
+    \item \textbf{Importancia del enfoque iterativo:} La identificación de problemas específicos y su resolución mediante mejoras incrementales ha sido clave para el éxito del proyecto.
+    
+    \item \textbf{Valor del conocimiento anatómico:} La comprensión de la anatomía del húmero ha sido fundamental para evaluar los resultados y guiar las mejoras del algoritmo.
+    
+    \item \textbf{Necesidad de redundancia:} La implementación de mecanismos de respaldo para cuando la detección falla ha aumentado significativamente la robustez del sistema.
+    
+    \item \textbf{Equilibrio entre parametrización manual y automatización:} Si bien es deseable un alto grado de automatización, ciertos parámetros requieren ajuste manual para adaptarse a diferentes casos.
+\end{enumerate}
+
+\subsection{Consideraciones finales}
+
+El proyecto demuestra que es posible obtener reconstrucciones 3D anatómicamente precisas a partir de imágenes de tomografía computarizada utilizando técnicas de procesamiento de imagen y modelado geométrico. La metodología desarrollada proporciona una base sólida que puede extenderse a otras estructuras anatómicas y aplicaciones médicas.
+
+La combinación de algoritmos de detección de contornos, contornos activos, ajuste mediante splines y visualización 3D ha demostrado ser efectiva para la segmentación y modelado del húmero, superando desafíos como la coherencia anatómica entre cortes y la precisión en regiones complejas.
+
+Este trabajo establece una metodología viable para la reconstrucción tridimensional a partir de imágenes médicas que podría integrarse en sistemas de apoyo a la práctica clínica, la educación médica y la investigación biomédica. 

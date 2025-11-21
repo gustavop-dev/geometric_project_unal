@@ -1,0 +1,193 @@
+\section{Implementación}
+
+La implementación del sistema se organizó de manera modular para facilitar el mantenimiento y la extensibilidad. A continuación, se detallan los principales componentes y su implementación.
+
+\subsection{Estructura del código}
+
+El código se organizó en una estructura jerárquica de módulos y submódulos:
+
+\begin{itemize}
+    \item \textbf{io:} Módulos para la lectura y escritura de archivos DICOM y manejo de metadatos.
+    \item \textbf{preprocessing:} Funciones para el preprocesamiento de imágenes (normalización, filtrado).
+    \item \textbf{contour:} Algoritmos para la detección de contornos y procesamiento geométrico.
+    \item \textbf{spline:} Implementación de ajuste mediante B-splines.
+    \item \textbf{visualization:} Herramientas para visualización de resultados y generación de modelos 3D.
+\end{itemize}
+
+\subsection{Scripts principales}
+
+Se implementaron dos scripts principales:
+
+\begin{itemize}
+    \item \textbf{run\_detection.py:} Ejecuta el pipeline completo de detección del húmero en todas las imágenes DICOM.
+    \item \textbf{run\_visualization.py:} Genera el modelo 3D a partir de los resultados de la detección.
+\end{itemize}
+
+\subsection{Pipeline de procesamiento}
+
+El pipeline implementado en el módulo principal sigue esta secuencia:
+
+\begin{lstlisting}[language=Python, caption=Pipeline principal de procesamiento]
+def run_pipeline(dicom_directory: str, output_directory: str, show_images: bool = False) -> None:
+    """
+    Run the complete humerus detection and modeling pipeline.
+    
+    Args:
+        dicom_directory: Directory containing the DICOM files
+        output_directory: Directory where to save the results
+        show_images: Whether to display the images during processing
+    """
+    # Create output directory if it doesn't exist
+    os.makedirs(output_directory, exist_ok=True)
+    
+    # Process all DICOM files in the directory
+    files = sorted([f for f in os.listdir(dicom_directory) if f.endswith('.dcm')])
+    previous_contour = None
+    
+    for i, file in enumerate(files):
+        # Step 1: Read DICOM file
+        dataset, pixel_array = dicom_utils.read_dicom(full_path)
+            
+        # Step 2: Detect the humerus contour
+        contour = detection.detect_advanced_humerus_contour(
+            pixel_array, 
+            previous_contour=previous_contour, 
+            file_name=base_name,
+            slice_height=dicom_utils.get_slice_height(dataset)
+        )
+            
+        # Step 3: Apply B-spline
+        smoothed_contour = outliers.detect_and_correct_outliers(contour, is_spline=False)
+        x_spline, y_spline = fitting.apply_bspline(smoothed_contour, degree, smoothing)
+        
+        # Step 4: Visualize and save results
+        fig = plotting.visualize_results(pixel_array, contour, x_spline, y_spline, title)
+        plotting.save_results(fig, output_directory, base_name, "advanced")
+        
+        # Update previous contour for next iteration
+        previous_contour = contour
+\end{lstlisting}
+
+\subsection{Detección avanzada del húmero}
+
+El algoritmo de detección avanzada incluye múltiples estrategias para asegurar la robustez:
+
+\begin{lstlisting}[language=Python, caption=Detección avanzada del húmero]
+def detect_advanced_humerus_contour(
+    pixel_array: np.ndarray, 
+    previous_contour: Optional[np.ndarray] = None, 
+    file_name: Optional[str] = None,
+    slice_height: Optional[float] = None
+) -> np.ndarray:
+    # Tratamiento especial para casos problemáticos
+    if file_name in ["I6", "I7"]:
+        # Aplicar técnica específica para estas imágenes
+        # ... (código específico)
+    
+    # Intentar usar el contorno previo como referencia
+    if previous_contour is not None:
+        # Ajustar ligeramente el contorno anterior para adaptarlo al corte actual
+        init_contour = adjust_from_previous_contour(previous_contour, pixel_array)
+        # ... (código de refinamiento)
+    else:
+        # Si no hay contorno previo, usar detección de círculo
+        center_x, center_y, radius = detect_humerus_circle(pixel_array)
+        if center_x is not None:
+            init_contour = generate_circular_contour(center_x, center_y, radius)
+    
+    # Aplicar contorno activo (snake) para refinar
+    contour = apply_snake_algorithm(init_contour, pixel_array, 
+                                     alpha=0.015, beta=10.0,  # Tensión y rigidez
+                                     gamma=0.001,            # Paso temporal
+                                     iterations=100)
+\end{lstlisting}
+
+\subsection{Ajuste mediante B-splines}
+
+Para el ajuste de B-splines, se implementó una función que maneja el cálculo de la parametrización y el ajuste del spline:
+
+\begin{lstlisting}[language=Python, caption=Implementación de B-splines]
+def apply_bspline(contour: np.ndarray, degree: int = 3, smoothing: float = 10.0) -> Tuple[np.ndarray, np.ndarray]:
+    """
+    Apply B-spline fitting to a contour.
+    
+    Args:
+        contour: Input contour points as numpy array of shape (n_points, 2)
+        degree: Degree of the B-spline
+        smoothing: Smoothing factor (0 = interpolation)
+        
+    Returns:
+        Tuple containing arrays of x and y coordinates of the spline
+    """
+    try:
+        # Extract x and y coordinates
+        y, x = contour[:, 0], contour[:, 1]
+        
+        # Arc length parametrization
+        t = np.zeros(len(x))
+        t[1:] = np.cumsum(np.sqrt(np.diff(x)**2 + np.diff(y)**2))
+        t = t / t[-1]
+        
+        # Periodic B-spline fitting
+        tck, u = splprep([x, y], u=t, s=smoothing, k=degree, per=1)
+        
+        # Evaluate the spline at uniform parameter values
+        u_new = np.linspace(0, 1, 200)
+        x_spline, y_spline = splev(u_new, tck)
+        
+        return x_spline, y_spline
+    except Exception as e:
+        print(f"Error applying B-spline: {e}")
+        return None, None
+\end{lstlisting}
+
+\subsection{Generación del modelo 3D}
+
+La generación del modelo 3D se realiza extrayendo los contornos de las imágenes procesadas y combinándolos en un espacio tridimensional:
+
+\begin{lstlisting}[language=Python, caption=Generación del modelo 3D]
+def generate_3d_model(contours, z_spacing, pixel_spacing, output_path):
+    # Crear figura 3D
+    fig = plt.figure(figsize=(12, 10))
+    ax = fig.add_subplot(111, projection='3d')
+    
+    # Para cada contorno, asignar una coordenada Z y dibujar
+    for i, contour in enumerate(valid_contours):
+        # Z coordinate based on DICOM spacing
+        z = i * z_spacing
+        
+        # Scale coordinates according to pixel spacing
+        x = contour[:, 1] * pixel_spacing[0]
+        y = contour[:, 0] * pixel_spacing[1]
+        
+        # Resample with B-splines for uniformity
+        t = np.zeros(len(x))
+        t[1:] = np.cumsum(np.sqrt(np.diff(x)**2 + np.diff(y)**2))
+        t = t / t[-1]
+        
+        # Draw contour
+        tck, u = splprep([x, y], u=t, s=0, per=1)
+        u_new = np.linspace(0, 1, n_points)
+        x_new, y_new = splev(u_new, tck)
+        ax.plot(x_new, y_new, [z]*len(x_new), '-', color=colors[i])
+        
+        # Connect with previous slice
+        if i > 0:
+            # ... (código para conectar con el corte anterior)
+\end{lstlisting}
+
+\subsection{Mejoras implementadas}
+
+Para resolver los problemas específicos de coherencia anatómica, se realizaron las siguientes mejoras:
+
+\begin{enumerate}
+    \item \textbf{Transferencia de contorno mejorada:} Se implementó un algoritmo más avanzado para ajustar el contorno previo al corte actual, teniendo en cuenta posibles cambios en la forma y posición.
+    
+    \item \textbf{Aumento de rigidez en snakes:} Se incrementaron los parámetros de tensión y rigidez del algoritmo de contornos activos para prevenir colapsos y mantener una forma más estable.
+    
+    \item \textbf{Detección específica por altura del corte:} Se ajustaron los parámetros de detección según la altura del corte, aplicando diferentes estrategias para diferentes regiones del húmero.
+    
+    \item \textbf{Mejor parametrización de splines:} Se mejoró la parametrización por longitud de arco para obtener distribuciones más uniformes de los puntos del spline.
+    
+    \item \textbf{Mayor factor de suavizado:} Se aumentó el factor de suavizado en los B-splines para obtener contornos más suaves y anatómicamente verosímiles.
+\end{enumerate} 

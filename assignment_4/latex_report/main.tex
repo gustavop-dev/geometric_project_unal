@@ -1,0 +1,62 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage[spanish]{babel}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath,amsfonts,amssymb}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{geometry}
+\usepackage{hyperref}
+\usepackage{listings}
+\usepackage{float}
+\usepackage{subcaption}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+
+\geometry{margin=2.5cm}
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    filecolor=magenta,
+    urlcolor=blue,
+}
+
+\lstset{
+    basicstyle=\small\ttfamily,
+    commentstyle=\color{gray},
+    keywordstyle=\color{blue},
+    stringstyle=\color{red},
+    breaklines=true,
+    showstringspaces=false,
+    numbers=left,
+    numberstyle=\tiny\color{gray},
+    frame=single,
+}
+
+\title{\textbf{Segmentación y Modelado 3D del Húmero a partir de Imágenes de Tomografía Computarizada}}
+\author{Estudiante de Geometría Computacional}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+Este informe documenta el desarrollo, implementación y mejora de un sistema de segmentación y modelado 3D del húmero utilizando imágenes de tomografía computarizada. El proyecto aborda diversos desafíos en la detección de contornos, corrección de errores de segmentación, y visualización tridimensional coherente. Se detallan las técnicas de procesamiento de imágenes médicas, algoritmos de detección de contornos, y métodos de interpolación mediante splines utilizados para reconstruir la estructura anatómica del húmero a partir de cortes axiales.
+\end{abstract}
+
+\tableofcontents
+
+\newpage
+
+\input{introduccion}
+\input{metodologia}
+\input{implementacion}
+\input{resultados}
+\input{conclusiones}
+
+\appendix
+\section{Código fuente}
+\input{codigo}
+
+\end{document} 

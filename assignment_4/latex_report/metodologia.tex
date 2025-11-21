@@ -1,0 +1,79 @@
+\section{Metodología}
+
+La metodología desarrollada para la segmentación y modelado 3D del húmero consta de varias etapas secuenciales que trabajan de forma integrada para conseguir resultados anatómicamente precisos.
+
+\subsection{Flujo de trabajo general}
+
+El procesamiento de las imágenes sigue el siguiente flujo de trabajo:
+
+\begin{enumerate}
+    \item \textbf{Lectura de imágenes DICOM:} Carga de los cortes axiales en formato DICOM, extrayendo tanto los datos de los píxeles como los metadatos asociados (espaciado entre cortes, resolución de píxel, etc.).
+    \item \textbf{Preprocesamiento:} Normalización, filtrado y realce de contraste para mejorar la visibilidad del húmero.
+    \item \textbf{Detección inicial:} Identificación de la región donde se encuentra el húmero utilizando la transformada circular de Hough.
+    \item \textbf{Segmentación avanzada:} Determinación precisa del contorno del húmero mediante técnicas de contorno activo (snakes).
+    \item \textbf{Ajuste mediante splines:} Aplicación de splines para obtener un contorno suave y anatómicamente correcto.
+    \item \textbf{Detección y corrección de valores atípicos:} Identificación y corrección de irregularidades en los contornos.
+    \item \textbf{Integración de continuidad entre cortes:} Uso del contorno del corte anterior como referencia para mejorar la coherencia.
+    \item \textbf{Generación del modelo 3D:} Integración de todos los contornos para construir un modelo tridimensional completo.
+    \item \textbf{Visualización:} Representación del modelo 3D con técnicas de renderizado.
+\end{enumerate}
+
+\subsection{Técnicas de procesamiento de imagen}
+
+\subsubsection{Detección de contornos}
+
+Para la detección inicial del húmero, se utiliza la transformada circular de Hough, que permite identificar estructuras circulares en la imagen. Este enfoque es adecuado ya que el húmero aparece aproximadamente circular en los cortes axiales.
+
+El algoritmo implementado sigue estos pasos:
+\begin{enumerate}
+    \item Normalización de la imagen y inversión (el húmero aparece como región oscura).
+    \item Aplicación de filtro gaussiano para reducción de ruido.
+    \item Detección de bordes mediante el algoritmo de Canny.
+    \item Aplicación de la transformada de Hough para círculos, con radios adaptados al tamaño esperado del húmero.
+    \item Evaluación de los círculos detectados basándose en su posición y características de intensidad.
+\end{enumerate}
+
+\subsubsection{Contornos activos (Snakes)}
+
+Una vez identificada la región aproximada del húmero, se utiliza el algoritmo de contornos activos para refinar la segmentación:
+
+\begin{enumerate}
+    \item Se inicializa el contorno activo con el círculo detectado previamente.
+    \item Se configura el algoritmo con parámetros de tensión y rigidez adaptados.
+    \item Se itera el proceso de deformación del contorno hasta que converja a los bordes del húmero.
+    \item Se aplican restricciones para evitar colapsos o expansiones excesivas del contorno.
+\end{enumerate}
+
+\subsection{Continuidad entre cortes}
+
+Para asegurar la coherencia anatómica entre cortes consecutivos, se implementaron las siguientes estrategias:
+
+\begin{enumerate}
+    \item \textbf{Transferencia de contorno:} El contorno detectado en un corte se utiliza como inicialización para el siguiente corte.
+    \item \textbf{Tratamiento especial para regiones problemáticas:} Se identificaron las imágenes que presentaban dificultades (específicamente las imágenes 6 y 7) y se les aplicó un procesamiento adaptado.
+    \item \textbf{Corrección de posición:} Se implementó un algoritmo para ajustar la posición del contorno basándose en la coherencia anatómica esperada.
+    \item \textbf{Mecanismos de respaldo:} Cuando la detección falla en un corte, se utiliza una versión modificada del contorno anterior.
+\end{enumerate}
+
+\subsection{Ajuste mediante splines}
+
+Para obtener contornos suaves y anatómicamente precisos, se implementó un sistema de ajuste mediante B-splines:
+
+\begin{enumerate}
+    \item Se procesan los puntos del contorno para eliminar valores atípicos.
+    \item Se parametriza el contorno según la longitud de arco.
+    \item Se aplica un B-spline cerrado con grado 3 y un factor de suavizado adaptativo.
+    \item Se evalúa el spline en puntos equidistantes para obtener un contorno uniforme.
+\end{enumerate}
+
+\subsection{Modelado 3D}
+
+Para la generación del modelo 3D, se siguen estos pasos:
+
+\begin{enumerate}
+    \item Extracción de los contornos de splines de las imágenes resultantes.
+    \item Normalización de cada contorno a un número uniforme de puntos.
+    \item Asignación de coordenadas Z basadas en el espaciado entre cortes de las imágenes DICOM.
+    \item Conexión de contornos consecutivos para formar una superficie tridimensional.
+    \item Generación de visualizaciones estáticas y animadas (GIF) con rotación del modelo 3D.
+\end{enumerate} 
